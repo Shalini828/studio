@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
@@ -6,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { GlassCard } from "@/components/glass-card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { 
   ArrowLeft, 
   Search, 
@@ -16,8 +16,12 @@ import {
   CheckCircle2,
   Loader2,
   ExternalLink,
-  ChevronDown,
-  LayoutDashboard
+  LayoutDashboard,
+  AlertTriangle,
+  Flame,
+  Clock,
+  Zap,
+  Monitor
 } from "lucide-react"
 import { researchAgentResourceGeneration, type ResearchAgentResourceGenerationOutput } from "@/ai/flows/research-agent-resource-generation"
 import { generateNotesTopics, type NotesAgentTopicGenerationOutput } from "@/ai/flows/notes-agent-topic-generation"
@@ -25,8 +29,6 @@ import { generateStudyPlan, type ScheduleAgentStudyPlanGenerationOutput } from "
 import { generateRevisionSummary, type SummaryAgentRevisionSummaryGenerationOutput } from "@/ai/flows/summary-agent-revision-summary-generation"
 import { generateFocusGuardianSuggestions, type FocusGuardianSuggestionGenerationOutput } from "@/ai/flows/focus-guardian-suggestion-generation"
 import { cn } from "@/lib/utils"
-
-type AgentState = 'idle' | 'processing' | 'complete'
 
 function StudioContent() {
   const searchParams = useSearchParams()
@@ -74,52 +76,61 @@ function StudioContent() {
     runAgents()
   }, [])
 
-  return (
-    <div className="min-h-screen p-4 md:p-8 bg-background">
-      {/* Header */}
-      <header className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/')} className="rounded-full">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-headline font-bold tracking-tight">Studio Workspace</h1>
-            <p className="text-muted-foreground text-sm">Orchestrating agents for: <span className="text-primary italic font-medium">{studyGoal}</span></p>
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Overall Progress</span>
-            <span className="text-primary font-mono text-sm">{Math.round(progress)}%</span>
-          </div>
-          <Progress value={progress} className="w-48 h-1.5" />
-        </div>
-      </header>
+  const focusScore = results.guardian?.focusScore || 0
+  const isCriticalFocus = results.guardian && focusScore < 60
 
-      {/* Main Grid */}
-      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Sidebar Status */}
-        <div className="lg:col-span-3 space-y-4">
-          <GlassCard className="p-4 border-white/5 sticky top-8">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-6">Agent Pipeline</h3>
-            <div className="space-y-6">
+  return (
+    <div className="min-h-screen bg-[#020202] text-foreground font-body">
+      {/* OS Style Top Bar */}
+      <div className="h-10 border-b border-white/5 bg-black/40 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-black/10" />
+            <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-black/10" />
+            <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-black/10" />
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">Command Center v2.5</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Monitor className="w-3 h-3 text-primary" />
+            <span className="text-[10px] font-mono text-primary">iQOO PRODUCTIVITY MODE: {isCriticalFocus ? "ALERT" : "STABLE"}</span>
+          </div>
+          <span className="text-[10px] font-mono text-muted-foreground/50">{new Date().toLocaleTimeString()}</span>
+        </div>
+      </div>
+
+      <div className="flex h-[calc(100vh-40px)]">
+        {/* Sidebar - Agent Pipeline */}
+        <aside className="w-64 border-r border-white/5 bg-black/20 p-6 flex flex-col gap-8">
+          <div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => router.push('/')} 
+              className="mb-8 text-muted-foreground hover:text-primary -ml-2"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Exit Dashboard
+            </Button>
+            
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-6">Orchestration</h3>
+            <div className="space-y-4">
               {steps.map((step, idx) => {
                 const isComplete = idx < activeStep || (idx === steps.length - 1 && progress === 100)
                 const isProcessing = idx === activeStep && progress < 100
                 return (
-                  <div key={step.id} className="flex items-center gap-4 group">
+                  <div key={step.id} className="flex items-center gap-3 group">
                     <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-500",
+                      "w-6 h-6 rounded flex items-center justify-center transition-all duration-500",
                       isComplete ? "bg-primary/20 text-primary" : 
-                      isProcessing ? "bg-secondary/20 text-secondary animate-pulse" : "bg-white/5 text-muted-foreground"
+                      isProcessing ? "bg-secondary/20 text-secondary animate-pulse" : "bg-white/5 text-muted-foreground/50"
                     )}>
-                      {isComplete ? <CheckCircle2 className="w-4 h-4" /> : 
-                       isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <step.icon className="w-4 h-4" />}
+                      {isComplete ? <CheckCircle2 className="w-3.5 h-3.5" /> : 
+                       isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <step.icon className="w-3.5 h-3.5" />}
                     </div>
                     <span className={cn(
-                      "text-sm font-medium transition-colors",
-                      isComplete ? "text-foreground" : isProcessing ? "text-secondary font-bold" : "text-muted-foreground"
+                      "text-[11px] font-medium transition-colors",
+                      isComplete ? "text-foreground" : isProcessing ? "text-secondary" : "text-muted-foreground/40"
                     )}>
                       {step.label}
                     </span>
@@ -127,151 +138,219 @@ function StudioContent() {
                 )
               })}
             </div>
-          </GlassCard>
-        </div>
+          </div>
 
-        {/* Results Area */}
-        <div className="lg:col-span-9 space-y-8 pb-20">
-          
-          {/* Research Results */}
-          {results.research && (
-            <div className="animate-fade-in-up">
-              <div className="flex items-center gap-2 mb-4 px-2">
-                <Search className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-headline font-bold">Research Resources</h2>
+          <div className="mt-auto space-y-4">
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+              <div className="flex justify-between items-end">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Efficiency</span>
+                <span className="text-primary font-mono text-xs">{Math.round(progress)}%</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {results.research.researchResources.map((res, i) => (
-                  <GlassCard key={i} className="p-5 border-white/5 hover:bg-white/10 transition-colors" gradient>
-                    <h4 className="font-bold mb-2 line-clamp-1">{res.title}</h4>
-                    <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{res.description}</p>
-                    <a 
-                      href={res.url} 
-                      target="_blank" 
-                      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary hover:underline"
-                    >
-                      Visit Resource <ExternalLink className="w-3 h-3" />
-                    </a>
+              <Progress value={progress} className="h-1 bg-white/5" />
+            </div>
+            <div className="text-[9px] text-center text-muted-foreground/40">
+              Active Session: {studyGoal}
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto p-8 relative">
+          <div className="max-w-6xl mx-auto space-y-8">
+            
+            {/* Top Dashboard Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">
+              <div>
+                <h1 className="text-4xl font-headline font-bold tracking-tight mb-2">Workspace Dashboard</h1>
+                <p className="text-muted-foreground">Generated intelligence for <span className="text-primary italic font-medium">{studyGoal}</span></p>
+              </div>
+              
+              {results.guardian && (
+                <div className="flex gap-4">
+                  <GlassCard className={cn(
+                    "p-4 min-w-[160px] border-white/5",
+                    isCriticalFocus && "border-destructive/30 bg-destructive/5 neon-border shadow-destructive/10"
+                  )}>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Focus Score</span>
+                      <ShieldCheck className={cn("w-4 h-4", isCriticalFocus ? "text-destructive" : "text-primary")} />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className={cn("text-3xl font-mono font-bold", isCriticalFocus ? "text-destructive" : "text-primary")}>
+                        {focusScore}
+                      </span>
+                      <span className="text-xs text-muted-foreground">/100</span>
+                    </div>
                   </GlassCard>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Notes Topics */}
-          {results.notes && (
-            <div className="animate-fade-in-up">
-              <div className="flex items-center gap-2 mb-4 px-2">
-                <Notebook className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-headline font-bold">Key Note Topics</h2>
-              </div>
-              <GlassCard className="p-6 border-white/5">
-                <div className="flex flex-wrap gap-2">
-                  {results.notes.notesTopics.map((topic, i) => (
-                    <div key={i} className="px-4 py-2 rounded-full glass-card border-primary/20 text-sm font-medium">
-                      {topic}
-                    </div>
-                  ))}
                 </div>
-              </GlassCard>
+              )}
             </div>
-          )}
 
-          {/* Schedule */}
-          {results.schedule && (
-            <div className="animate-fade-in-up">
-              <div className="flex items-center gap-2 mb-4 px-2">
-                <CalendarDays className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-headline font-bold">7-Day Study Roadmap</h2>
-              </div>
-              <div className="space-y-3">
-                {results.schedule.map((dayPlan, i) => (
-                  <GlassCard key={i} className="p-6 border-white/5 flex flex-col md:flex-row gap-6 hover:neon-border transition-all">
-                    <div className="md:w-32 shrink-0">
-                      <div className="text-xs font-bold uppercase tracking-widest text-primary mb-1">{dayPlan.day}</div>
-                      <div className="font-headline font-bold text-lg">{dayPlan.theme}</div>
+            {/* iQOO Productivity Mode - Critical Alert */}
+            {isCriticalFocus && (
+              <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 neon-border shadow-lg animate-pulse">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className="font-headline font-bold">iQOO Productivity Mode: CRITICAL WARNING</AlertTitle>
+                <AlertDescription className="text-sm opacity-90">
+                  Focus potential is below threshold (60%). Distraction probability is high. 
+                  Recommended: Initialize 25-minute Pomodoro Lock immediately.
+                </AlertDescription>
+                <div className="mt-4 flex gap-3">
+                  <Button size="sm" variant="destructive" className="font-bold">Start Focus Lock</Button>
+                  <Button size="sm" variant="outline" className="border-destructive/30 hover:bg-destructive/20">Block Distractions</Button>
+                </div>
+              </Alert>
+            )}
+
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* Left Column: Knowledge Base */}
+              <div className="space-y-8">
+                {/* Notes Topics */}
+                {results.notes && (
+                  <div className="animate-fade-in-up">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Notebook className="w-5 h-5 text-primary" />
+                      <h2 className="text-xl font-headline font-bold">Extracted Concepts</h2>
                     </div>
-                    <div className="flex-1">
-                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {dayPlan.activities.map((act, j) => (
-                          <li key={j} className="flex items-start gap-2 text-sm text-muted-foreground">
-                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-secondary shrink-0" />
-                            {act}
-                          </li>
+                    <GlassCard className="p-6 border-white/5 space-y-4">
+                      <div className="grid grid-cols-1 gap-3">
+                        {results.notes.notesTopics.map((topic, i) => (
+                          <div key={i} className="group flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5 hover:border-primary/30 transition-all">
+                            <span className="text-sm font-medium">{topic}</span>
+                            <CheckCircle2 className="w-4 h-4 text-primary/40 group-hover:text-primary transition-colors" />
+                          </div>
                         ))}
-                      </ul>
+                      </div>
+                    </GlassCard>
+                  </div>
+                )}
+
+                {/* Summary */}
+                {results.summary && (
+                  <div className="animate-fade-in-up">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FileText className="w-5 h-5 text-primary" />
+                      <h2 className="text-xl font-headline font-bold">Executive Summary</h2>
                     </div>
-                  </GlassCard>
-                ))}
+                    <GlassCard className="p-8 border-white/5 leading-relaxed text-muted-foreground relative overflow-hidden" gradient>
+                      <div className="absolute top-0 right-0 p-4">
+                        <FileText className="w-24 h-24 text-primary/5 -mr-8 -mt-8" />
+                      </div>
+                      <div className="prose prose-invert max-w-none text-sm">
+                        {results.summary.revisionSummary.split('\n').map((para, i) => (
+                          <p key={i} className="mb-4">{para}</p>
+                        ))}
+                      </div>
+                    </GlassCard>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Execution & Planning */}
+              <div className="space-y-8">
+                {/* Schedule */}
+                {results.schedule && (
+                  <div className="animate-fade-in-up">
+                    <div className="flex items-center gap-2 mb-4">
+                      <CalendarDays className="w-5 h-5 text-primary" />
+                      <h2 className="text-xl font-headline font-bold">7-Day Roadmap</h2>
+                    </div>
+                    <div className="space-y-3">
+                      {results.schedule.map((dayPlan, i) => (
+                        <div key={i} className="group flex items-stretch gap-4">
+                          <div className="w-14 py-4 flex flex-col items-center justify-center rounded-xl bg-white/5 border border-white/5 group-hover:bg-primary/10 group-hover:border-primary/20 transition-all">
+                            <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary">DAY</span>
+                            <span className="text-xl font-mono font-bold">{i + 1}</span>
+                          </div>
+                          <GlassCard className="flex-1 p-5 border-white/5 group-hover:neon-border transition-all">
+                            <h4 className="font-bold text-sm mb-2">{dayPlan.theme}</h4>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1">
+                              {dayPlan.activities.slice(0, 2).map((act, j) => (
+                                <div key={j} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                  <Clock className="w-3 h-3 text-secondary" /> {act}
+                                </div>
+                              ))}
+                            </div>
+                          </GlassCard>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Research */}
+                {results.research && (
+                  <div className="animate-fade-in-up">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Search className="w-5 h-5 text-primary" />
+                      <h2 className="text-xl font-headline font-bold">Verified Sources</h2>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      {results.research.researchResources.map((res, i) => (
+                        <GlassCard key={i} className="p-4 border-white/5 flex items-center justify-between hover:bg-white/10 transition-colors" gradient>
+                          <div className="flex-1 min-w-0 pr-4">
+                            <h4 className="font-bold text-sm truncate">{res.title}</h4>
+                            <p className="text-[10px] text-muted-foreground truncate">{res.url}</p>
+                          </div>
+                          <a href={res.url} target="_blank" className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </GlassCard>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
 
-          {/* Summary */}
-          {results.summary && (
-            <div className="animate-fade-in-up">
-              <div className="flex items-center gap-2 mb-4 px-2">
-                <FileText className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-headline font-bold">Revision Summary</h2>
-              </div>
-              <GlassCard className="p-8 border-white/5 leading-relaxed text-muted-foreground relative" gradient>
-                <div className="absolute top-0 right-0 p-4">
-                  <FileText className="w-12 h-12 text-primary/10" />
+            {/* Focus Guardian Suggestions */}
+            {results.guardian && (
+              <div className="animate-fade-in-up pt-8 border-t border-white/5">
+                <div className="flex items-center gap-2 mb-6">
+                  <ShieldCheck className="w-5 h-5 text-secondary" />
+                  <h2 className="text-xl font-headline font-bold">Productivity Guard</h2>
                 </div>
-                <div className="prose prose-invert max-w-none">
-                  {results.summary.revisionSummary.split('\n').map((para, i) => (
-                    <p key={i} className="mb-4">{para}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {results.guardian.suggestions.map((suggestion, i) => (
+                    <GlassCard key={i} className="p-6 border-secondary/10 bg-secondary/5" gradient>
+                      <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center mb-4">
+                        <Zap className="w-4 h-4 text-secondary" />
+                      </div>
+                      <p className="text-xs font-medium leading-relaxed">{suggestion}</p>
+                    </GlassCard>
                   ))}
                 </div>
-              </GlassCard>
-            </div>
-          )}
-
-          {/* Focus Guardian */}
-          {results.guardian && (
-            <div className="animate-fade-in-up">
-              <div className="flex items-center gap-2 mb-4 px-2">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-headline font-bold">Focus Guardian Advice</h2>
+                {results.guardian.distractionWarnings && (
+                  <div className="mt-8 flex flex-wrap gap-4">
+                    {results.guardian.distractionWarnings.map((warning, i) => (
+                      <div key={i} className="px-4 py-2 rounded-full bg-destructive/10 border border-destructive/20 flex items-center gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                        <span className="text-[10px] font-bold text-destructive uppercase tracking-widest">{warning}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {results.guardian.suggestions.map((suggestion, i) => (
-                  <GlassCard key={i} className="p-6 border-secondary/20 bg-secondary/5" gradient>
-                    <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center mb-4">
-                      <ShieldCheck className="w-4 h-4 text-secondary" />
-                    </div>
-                    <p className="text-sm font-medium">{suggestion}</p>
-                  </GlassCard>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* Processing Indicator */}
-          {activeStep < steps.length && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="relative mb-6">
-                <div className="absolute inset-0 bg-primary/20 blur-3xl animate-pulse" />
-                <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
+            {/* Processing Indicator for Initial Load */}
+            {activeStep < steps.length && (
+              <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-primary/20 blur-3xl animate-pulse" />
+                  <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
+                </div>
+                <h3 className="text-2xl font-headline font-bold mb-2">Orchestrating Workspace</h3>
+                <p className="text-muted-foreground text-sm">
+                  Active Agent: <span className="text-primary font-bold">{steps[activeStep].label}</span>
+                </p>
               </div>
-              <h3 className="text-2xl font-headline font-bold mb-2">Orchestrating Agents</h3>
-              <p className="text-muted-foreground max-w-sm">
-                Wait while the <span className="text-primary font-bold">Planner</span> agent coordinates with 
-                the <span className="text-secondary font-bold">{steps[activeStep].id}</span> agent.
-              </p>
-            </div>
-          )}
-
-          {/* Completion Button */}
-          {activeStep === steps.length && progress === 100 && (
-            <div className="flex justify-center pt-8">
-              <Button size="lg" className="rounded-full px-12 bg-gradient-to-r from-primary to-secondary h-14 font-bold">
-                Export Dashboard <LayoutDashboard className="ml-2 w-5 h-5" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </main>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { GlassCard } from "@/components/glass-card"
 import { WorkflowVisualizer } from "@/components/workflow-visualizer"
+import { OfficeKitSync } from "@/components/office-kit-sync"
 import { 
   Sparkles, 
   Search, 
@@ -24,13 +25,18 @@ import { cn } from "@/lib/utils"
 
 export default function Home() {
   const [goal, setGoal] = useState("")
+  const [isSyncing, setIsSyncing] = useState(false)
   const router = useRouter()
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault()
     if (goal.trim()) {
-      router.push(`/studio?goal=${encodeURIComponent(goal)}`)
+      setIsSyncing(true)
     }
+  }
+
+  const onSyncComplete = () => {
+    router.push(`/studio?goal=${encodeURIComponent(goal)}`)
   }
 
   const agentShowcase = [
@@ -43,6 +49,8 @@ export default function Home() {
 
   return (
     <div className="relative overflow-hidden">
+      {isSyncing && <OfficeKitSync onComplete={onSyncComplete} />}
+      
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4 pt-20">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
