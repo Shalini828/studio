@@ -16,19 +16,61 @@ import {
   CheckCircle2,
   Loader2,
   ExternalLink,
-  LayoutDashboard,
   AlertTriangle,
-  Flame,
   Clock,
   Zap,
   Monitor
 } from "lucide-react"
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import { researchAgentResourceGeneration, type ResearchAgentResourceGenerationOutput } from "@/ai/flows/research-agent-resource-generation"
 import { generateNotesTopics, type NotesAgentTopicGenerationOutput } from "@/ai/flows/notes-agent-topic-generation"
 import { generateStudyPlan, type ScheduleAgentStudyPlanGenerationOutput } from "@/ai/flows/schedule-agent-study-plan-generation"
 import { generateRevisionSummary, type SummaryAgentRevisionSummaryGenerationOutput } from "@/ai/flows/summary-agent-revision-summary-generation"
 import { generateFocusGuardianSuggestions, type FocusGuardianSuggestionGenerationOutput } from "@/ai/flows/focus-guardian-suggestion-generation"
 import { cn } from "@/lib/utils"
+
+function FocusScoreGauge({ score }: { score: number }) {
+  const data = [
+    { name: "Score", value: score },
+    { name: "Remaining", value: 100 - score },
+  ]
+
+  const getColor = (s: number) => {
+    if (s >= 80) return "#22c55e" // Green
+    if (s >= 60) return "#eab308" // Yellow
+    return "#ef4444" // Red
+  }
+
+  const color = getColor(score)
+
+  return (
+    <div className="relative w-full h-32 flex items-center justify-center">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={40}
+            outerRadius={55}
+            startAngle={180}
+            endAngle={-180}
+            paddingAngle={0}
+            dataKey="value"
+            stroke="none"
+          >
+            <Cell fill={color} />
+            <Cell fill="rgba(255,255,255,0.05)" />
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-mono font-bold" style={{ color }}>{score}</span>
+        <span className="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-tighter">Focus IQ</span>
+      </div>
+    </div>
+  )
+}
 
 function StudioContent() {
   const searchParams = useSearchParams()
@@ -74,7 +116,7 @@ function StudioContent() {
       }
     }
     runAgents()
-  }, [])
+  }, [studyGoal])
 
   const focusScore = results.guardian?.focusScore || 0
   const isCriticalFocus = results.guardian && focusScore < 60
@@ -148,8 +190,8 @@ function StudioContent() {
               </div>
               <Progress value={progress} className="h-1 bg-white/5" />
             </div>
-            <div className="text-[9px] text-center text-muted-foreground/40">
-              Active Session: {studyGoal}
+            <div className="text-[9px] text-center text-muted-foreground/40 italic">
+              Active: {studyGoal}
             </div>
           </div>
         </aside>
@@ -168,18 +210,20 @@ function StudioContent() {
               {results.guardian && (
                 <div className="flex gap-4">
                   <GlassCard className={cn(
-                    "p-4 min-w-[160px] border-white/5",
-                    isCriticalFocus && "border-destructive/30 bg-destructive/5 neon-border shadow-destructive/10"
+                    "p-4 min-w-[200px] border-white/5 flex items-center gap-4",
+                    isCriticalFocus && "border-destructive/30 bg-destructive/5 shadow-destructive/10"
                   )}>
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Focus Score</span>
-                      <ShieldCheck className={cn("w-4 h-4", isCriticalFocus ? "text-destructive" : "text-primary")} />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Focus Score</span>
+                        <ShieldCheck className={cn("w-4 h-4", isCriticalFocus ? "text-destructive" : "text-primary")} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-medium">
+                        {focusScore >= 80 ? "Peak Stability" : focusScore >= 60 ? "Nominal Flow" : "System Alert"}
+                      </p>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className={cn("text-3xl font-mono font-bold", isCriticalFocus ? "text-destructive" : "text-primary")}>
-                        {focusScore}
-                      </span>
-                      <span className="text-xs text-muted-foreground">/100</span>
+                    <div className="w-24 h-24">
+                      <FocusScoreGauge score={focusScore} />
                     </div>
                   </GlassCard>
                 </div>
@@ -188,7 +232,7 @@ function StudioContent() {
 
             {/* iQOO Productivity Mode - Critical Alert */}
             {isCriticalFocus && (
-              <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 neon-border shadow-lg animate-pulse">
+              <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 shadow-lg animate-fade-in-up">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle className="font-headline font-bold">iQOO Productivity Mode: CRITICAL WARNING</AlertTitle>
                 <AlertDescription className="text-sm opacity-90">
