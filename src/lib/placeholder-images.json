@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-dashboard",
+      "description": "A futuristic dark UI dashboard overview",
+      "imageUrl": "https://picsum.photos/seed/studyagent-dash/1200/800",
+      "imageHint": "futuristic dashboard"
+    },
+    {
+      "id": "agent-research",
+      "description": "Research agent icon backdrop",
+      "imageUrl": "https://picsum.photos/seed/research/400/400",
+      "imageHint": "artificial intelligence"
+    }
+  ]
 }
